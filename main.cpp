@@ -102,7 +102,19 @@ public:
 	}
 
 	int GetDamage() const {
-		return baseDamage * static_cast<int>(render.size);
+		return baseDamage1 * static_cast<int>(render.size);
+	}
+
+	int GetHp() const {
+		return hp;
+	}
+
+	int UpdateHp(uint16_t damage) {
+		if (hp > damage)
+			hp -= damage;
+		else
+			return true;
+		return false;
 	}
 
 	int GetSize() const {
@@ -113,6 +125,8 @@ protected:
 	void init(int screenW, int screenH) {
 		// Choose size
 		render.size = static_cast<Renderable::Size>(1 << GetRandomValue(0, 2));
+
+		hp = static_cast<int>(render.size) * 50;
 
 		// Spawn at random edge
 		switch (GetRandomValue(0, 3)) {
@@ -144,14 +158,16 @@ protected:
 		physics.rotationSpeed = Utils::RandomFloat(ROT_MIN, ROT_MAX);
 
 		transform.rotation = Utils::RandomFloat(0, 360);
+
 	}
 
 	TransformA transform;
 	Physics    physics;
 	Renderable render;
 
-	int baseDamage = 0;
-	static constexpr float LIFE = 10.f;
+	int baseDamage1 = 0;
+	int hp = 0;
+	static constexpr float LIFE = 10.f;;
 	static constexpr float SPEED_MIN = 125.f;
 	static constexpr float SPEED_MAX = 250.f;
 	static constexpr float ROT_MIN = 50.f;
@@ -160,21 +176,21 @@ protected:
 
 class TriangleAsteroid : public Asteroid {
 public:
-	TriangleAsteroid(int w, int h) : Asteroid(w, h) { baseDamage = 5; }
+	TriangleAsteroid(int w, int h) : Asteroid(w, h) { baseDamage1 = 5; }
 	void Draw() const override {
 		Renderer::Instance().DrawPoly(transform.position, 3, GetRadius(), transform.rotation);
 	}
 };
 class SquareAsteroid : public Asteroid {
 public:
-	SquareAsteroid(int w, int h) : Asteroid(w, h) { baseDamage = 10; }
+	SquareAsteroid(int w, int h) : Asteroid(w, h) { baseDamage1 = 10; }
 	void Draw() const override {
 		Renderer::Instance().DrawPoly(transform.position, 4, GetRadius(), transform.rotation);
 	}
 };
 class PentagonAsteroid : public Asteroid {
 public:
-	PentagonAsteroid(int w, int h) : Asteroid(w, h) { baseDamage = 15; }
+	PentagonAsteroid(int w, int h) : Asteroid(w, h) { baseDamage1 = 15; }
 	void Draw() const override {
 		Renderer::Instance().DrawPoly(transform.position, 5, GetRadius(), transform.rotation);
 	}
@@ -268,8 +284,8 @@ class Ship {
 public:
 	Ship(int screenW, int screenH) {
 		transform.position = {
-												 screenW * 0.5f,
-												 screenH * 0.5f
+			screenW * 0.5f,
+			screenH * 0.5f
 		};
 		hp = 100;
 		speed = 250.f;
@@ -295,6 +311,11 @@ public:
 		return alive;
 	}
 
+	int GetDmg() const
+	{
+		return dmg;
+	}
+
 	Vector2 GetPosition() const {
 		return transform.position;
 	}
@@ -316,6 +337,7 @@ public:
 protected:
 	TransformA transform;
 	int        hp;
+	int        dmg = 10;
 	float      speed;
 	bool       alive;
 	float      fireRateLaser;
@@ -465,9 +487,12 @@ public:
 				for (auto ait = asteroids.begin(); ait != asteroids.end(); ++ait) {
 					float dist = Vector2Distance((*pit).GetPosition(), (*ait)->GetPosition());
 					if (dist < (*pit).GetRadius() + (*ait)->GetRadius()) {
-						ait = asteroids.erase(ait);
 						pit = projectiles.erase(pit);
 						removed = true;
+						if ((*ait)->UpdateHp(player->GetDmg()))
+						{
+							ait = asteroids.erase(ait);
+						}
 						break;
 					}
 				}
@@ -534,8 +559,8 @@ private:
 
 	AsteroidShape currentShape = AsteroidShape::TRIANGLE;
 
-	static constexpr int C_WIDTH = 600;
-	static constexpr int C_HEIGHT = 600;
+	static constexpr int C_WIDTH = 2000;
+	static constexpr int C_HEIGHT = 1300;
 	static constexpr size_t MAX_AST = 150;
 	static constexpr float C_SPAWN_MIN = 0.5f;
 	static constexpr float C_SPAWN_MAX = 3.0f;
