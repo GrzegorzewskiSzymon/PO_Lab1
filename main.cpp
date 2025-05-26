@@ -109,12 +109,13 @@ public:
 		return hp;
 	}
 
-	int UpdateHp(uint16_t damage) {
-		if (hp > damage)
+	bool UpdateHp(uint16_t damage) {
+		if (hp > damage) {
 			hp -= damage;
-		else
-			return true;
-		return false;
+			TryShrink();
+			return false;
+		}
+		return true;
 	}
 
 	int GetSize() const {
@@ -127,6 +128,7 @@ protected:
 		render.size = static_cast<Renderable::Size>(1 << GetRandomValue(0, 2));
 
 		hp = static_cast<int>(render.size) * 50;
+		maxHpOriginal = hp;
 
 		// Spawn at random edge
 		switch (GetRandomValue(0, 3)) {
@@ -161,12 +163,33 @@ protected:
 
 	}
 
+	void TryShrink() {
+
+		float ratio = static_cast<float>(hp) / static_cast<float>(maxHpOriginal);
+		if (render.size == Renderable::LARGE && ratio <= 0.66f) {
+			ApplySize(Renderable::MEDIUM);
+		}
+		else if (render.size == Renderable::MEDIUM && ratio <= 0.33f) {
+			ApplySize(Renderable::SMALL);
+		}
+	}
+
+	void ApplySize(Renderable::Size newSize) {
+		if (newSize == render.size) return;
+		render.size = newSize;
+		int newMax = HP_PER_UNIT * static_cast<int>(render.size);
+		if (hp > newMax) hp = newMax;
+	}
+
 	TransformA transform;
 	Physics    physics;
 	Renderable render;
 
 	int baseDamage1 = 0;
 	int hp = 0;
+	int maxHpOriginal = 0;
+
+	static constexpr int   HP_PER_UNIT = 50;
 	static constexpr float LIFE = 10.f;;
 	static constexpr float SPEED_MIN = 125.f;
 	static constexpr float SPEED_MAX = 250.f;
